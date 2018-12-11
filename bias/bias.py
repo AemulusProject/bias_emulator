@@ -100,8 +100,7 @@ class bias_emulator(Aemulator):
             y    = means[:, i]
             ystd = stddev[:, i]
             kernel = george.kernels.ExpSquaredKernel(hyperparams, ndim=N_cosmological_params)
-            gp = george.GP(kernel, mean=np.mean(y),
-                           white_noise=np.log(np.mean(ystd)**2))
+            gp = george.GP(kernel, mean=np.mean(y))
             gp.compute(self.training_cosmologies, ystd)
             self.GP_list.append(gp)
             continue
