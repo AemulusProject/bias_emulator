@@ -64,12 +64,12 @@ class bias_emulator(Aemulator):
         self.training_cosmologies = \
             np.load(data_path+"training_cosmologies.npy")
         self.N_cosmological_params = len(self.training_cosmologies[0])
-        #self.rotation_matrix      = \
-        #    np.load(data_path+"rotation_matrix.npy")
-        #self.training_data        = \
-        #    np.load(data_path+"rotated_MF_parameters.npy")
-        #self.training_mean   = self.training_data[:,:,0] #sample means
-        #self.training_stddev = self.training_data[:,:,1] #sample stddevs
+        self.rotation_matrix      = \
+            np.load(data_path+"rotation_matrix.npy")
+        self.training_data        = \
+            np.load(data_path+"rotated_bias_parameters.npy")
+        self.training_mean   = self.training_data[:,:,0] #sample means
+        self.training_stddev = self.training_data[:,:,1] #sample stddevs
         self.loaded_data = True
         return
 
@@ -89,12 +89,11 @@ class bias_emulator(Aemulator):
         if hyperparams is None:
             hyperparams = np.std(self.training_cosmologies, 0)
 
-        #N_cosmological_params = self.N_cosmological_params
-        #means  = self.training_mean
-        #stddev = self.training_stddev
+        N_cosmological_params = self.N_cosmological_params
+        means  = self.training_mean
+        stddev = self.training_stddev
 
         #Assemble the list of GPs
-        """
         self.N_GPs = len(means[0])
         self.GP_list = []
         for i in range(self.N_GPs):
@@ -106,7 +105,6 @@ class bias_emulator(Aemulator):
             gp.compute(self.training_cosmologies, ystd)
             self.GP_list.append(gp)
             continue
-        """
         self.built = True
         return
 
@@ -119,7 +117,6 @@ class bias_emulator(Aemulator):
         if not self.built:
             raise Exception("Need to build before training.")
 
-        """
         means  = self.training_mean
 
         for i, gp in enumerate(self.GP_list):
@@ -134,7 +131,6 @@ class bias_emulator(Aemulator):
             p0 = gp.get_parameter_vector()
             result = op.minimize(nll, p0, jac=grad_nll)
             gp.set_parameter_vector(result.x)
-        """
         self.trained = True
         return
 
@@ -199,10 +195,9 @@ class bias_emulator(Aemulator):
         cos_arr[6] = params['N_eff']
         cos_arr = np.atleast_2d(cos_arr)
 
-        #means = self.training_mean.T #Transpose of mean data
-        #output = np.array([gp.predict(y, cos_arr)[0] for y,gp in zip(means, self.GP_list)])
-        #return np.dot(self.rotation_matrix, output).flatten()
-        return
+        means = self.training_mean.T #Transpose of mean data
+        output = np.array([gp.predict(y, cos_arr)[0] for y,gp in zip(means, self.GP_list)])
+        return np.dot(self.rotation_matrix, output).flatten()
 
 if __name__=="__main__":
     e = bias_emulator()
