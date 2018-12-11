@@ -6,7 +6,6 @@ import cffi, glob, os, inspect, pickle, warnings
 import scipy.optimize as op
 from scipy.interpolate import InterpolatedUnivariateSpline as IUS
 import george
-from classy import Class
 
 #Create the CFFI library
 bias_dir = os.path.dirname(__file__)
@@ -198,16 +197,144 @@ class bias_emulator(Aemulator):
         output = np.array([gp.predict(y, cos_arr)[0] for y,gp in zip(means, self.GP_list)])
         return np.dot(self.rotation_matrix, output).flatten()
 
+
+    def set_cosmology(self, params):
+        """
+        Set the cosmological parameters of the emulator. One must
+        call this function before actually computing the bias.
+        :param params:
+            A dictionary of parameters, where the key is the parameter name and
+            value is its value.
+        :return:
+            None
+        """
+        try:
+            from classy import Class
+        except ImportError:
+            print("Class not installed. Cannot compute the bias directly, only predict "+
+                  "parameters from the GPs using the predict() function.")
+            return
+        self.bias_slopes_and_intercepts = self.predict(params)
+        #Set up a CLASS dictionary
+        self.h = params['H0']/100.
+        self.Omega_m = (params["omega_b"]+params["omega_cdm"])/self.h**2
+        class_cosmology = {
+            'output': 'mPk',
+            'H0':           params['H0'],
+            'ln10^{10}A_s': params['ln10As'],
+            'n_s':          params['n_s'],
+            'w0_fld':       params['w0'],
+            'wa_fld':       0.0,
+            'omega_b':      params['omega_b'],
+            'omega_cdm':    params['omega_cdm'],
+            'Omega_Lambda': 1 - self.Omega_m,
+            'N_eff':        params['N_eff'],
+            'P_k_max_1/Mpc': 10.,
+            'z_max_pk':      5.03
+        }
+        #Seed splines in CLASS
+        cc = Class()
+        cc.set(class_cosmology)
+        cc.compute()
+        #Make everything attributes
+        self.cc = cc
+        self.k = np.logspace(-5, 1, num=1000) # Mpc^-1 comoving
+        self.M = np.logspace(10, 16.5, num=1000) # Msun/h
+        self.computed_sigma2      = {}
+        self.computed_peak_height = {}
+        self.computed_pk          = {}
+        self.cosmology_is_set = True
+        return
+
+    def predict_bias_parameters(self, redshifts):
+        x = 1./(1+redshifts)-0.5
+        A0 = 4.2828605
+        a0 = 0.4722138
+        b0 = 1.5170196
+        C0 = 0.888452
+        a1 = -0.56318698
+        b1 = -0.63010135
+        C1 = -0.5956625
+        c1 = -1.85148405
+        B0, c0, A1, B1 = self.bias_slopes_and_intercepts
+        a = a0 + x * a1
+        A = A0 + x * A1
+        b = b0 + x * b1
+        B = B0 + x * B1
+        c = c0 + x * c1
+        C = C0 + x * C1        
+        return A,a,B,b,C,c
+
+    def _compute_peak_height(self, redshifts):
+        if not self.cosmology_is_set:
+            raise Exception("Must set_cosmology() first.")
+        redshifts = np.array(redshifts)
+        if redshifts.ndim > 1:
+            raise Exception("Redshifts be either a scalar or 1D array.")
+        h, Omega_m = self.h, self.Omega_m #Hubble constant and matter fraction
+        k, M = self.k, self.M #wavenumbers and halo masses
+        Nk = len(k)
+        NM = len(M)
+        kh = k/h #h/Mpc
+        for i,z in enumerate(np.atleast_1d(redshifts)):
+            if z in self.computed_sigma2.keys():
+                continue
+            p = np.array([self.cc.pk_lin(ki, z) for ki in k])*h**3 #[Mpc/h]^3
+            sigma2    = np.zeros_like(M)
+            _lib.sigma2_at_M_arr(   _dc(M), NM, _dc(kh), _dc(p), Nk, Omega_m, _dc(sigma2))
+            self.computed_sigma2[z] = sigma2
+            self.computed_dsigma2dM = {}
+            self.computed_peak_height[z] = 1.686/np.sqrt(sigma2)
+            self.computed_pk[z]          = p
+            continue
+        return
+
+    def bias(self, Masses, redshifts, delta=200):
+        if not self.cosmology_is_set:
+            raise Exception("Must set_cosmology() first.")
+        Masses    = np.atleast_1d(Masses)
+        redshifts = np.atleast_1d(redshifts)
+        if Masses.ndim > 1:
+            raise Exception("Masses must be either scalar or 1D array.")
+        if redshifts.ndim > 1:
+            raise Exception("Redshifts must be either scalar or 1D array.")
+        if any(Masses < 1e10) or any(Masses > 10**16.5):
+            raise Exception("Mass outside of range 1e10-1e16.5 Msun/h.")
+        if any(redshifts > 5):
+            raise Exception("Redshift greater than 5.")
+        if any(redshifts > 3):
+            print("Warning: redshift greather than 3. Accuracy not guaranteed.")
+
+        self._compute_peak_height(redshifts)
+        lnMasses = np.log(Masses)
+        NM = len(Masses)
+        Nz = len(redshifts)
+        bias_out = np.zeros((Nz, NM))
+        for i,z in enumerate(redshifts):
+            A,a,B,b,C,c = self.predict_bias_parameters(z)
+            nu_spline = IUS(np.log(self.M), self.computed_peak_height[z])
+            nu        = peak_height_spline(lnMasses)
+            output    = np.zeros_like(Masses)
+            _lib.bias_at_nu_arr_FREEPARAMS(_dc(nu), NM, delta,A,a,B,b,C,c, _dc(output)); 
+            bias_out[i] = output
+            continue
+        if Nz == 1:
+            return bias_out.flatten()
+        return bias_out    
+
 if __name__=="__main__":
     e = bias_emulator()
     print(e)
     cosmology={
-        "omega_b": 0.027,
-        "omega_cdm": 0.114,
-        "w0": -0.82,
-        "n_s": 0.975,
-        "ln10As": 3.09,
-        "H0": 65.,
-        "N_eff": 3.
+        "omega_b": 0.02268325,
+        "omega_cdm": 0.1140598,
+        "w0": -0.8165972,
+        "n_s": 0.975589,
+        "ln10As": 3.092918,
+        "H0": 63.36569,
+        "N_eff": 2.91875
     }
     print(e.predict(cosmology))
+    e.set_cosmology(cosmology)
+    print(e.predict_bias_parameters(0))
+    
