@@ -9,7 +9,7 @@ import george
 
 #Create the CFFI library
 bias_dir = os.path.dirname(__file__)
-include_dir = os.path.join(bias_dir,'src')
+include_dir = os.path.join(bias_dir,'include')
 lib_file    = os.path.join(bias_dir,'_bias.so')
 # Some installation (e.g. Travis with python 3.x)
 # name this e.g. _bias.cpython-34m.so,

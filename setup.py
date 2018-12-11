@@ -4,10 +4,10 @@ import subprocess
 
 # Make a symlink between the bias directory and the src directory
 # in order to see the .h files.
-os.system('ln -s ../src bias/src')
+os.system('ln -s ../include bias/include')
 
 sources = glob.glob(os.path.join('src','*.c'))
-headers = glob.glob(os.path.join('src','*.h'))
+headers = glob.glob(os.path.join('include','*.h'))
 try:
     cflags = subprocess.check_output(['gsl-config', '--cflags'], universal_newlines=True).split()
     lflags = subprocess.check_output(['gsl-config', '--libs'], universal_newlines=True).split()
@@ -17,7 +17,7 @@ except OSError:
 ext=Extension("bias._bias",
               sources,
               depends=headers,
-              include_dirs=['src'],
+              include_dirs=['include'],
               extra_compile_args=[os.path.expandvars(flag) for flag in cflags],
               extra_link_args=[os.path.expandvars(flag) for flag in lflags])
 

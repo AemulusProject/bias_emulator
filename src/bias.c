@@ -7,7 +7,7 @@
  *  @bug No known bugs.
  */
 
-#include "C_bias.h"
+#include "bias.h"
 
 #include <math.h>
 #include <stdio.h>
