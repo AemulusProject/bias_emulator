@@ -4,7 +4,7 @@ import subprocess
 
 # Make a symlink between the bias directory and the src directory
 # in order to see the .h files.
-os.system('ln -s ../include bias/include')
+os.system('ln -h -s ../include bias/include')
 
 sources = glob.glob(os.path.join('src','*.c'))
 headers = glob.glob(os.path.join('include','*.h'))
