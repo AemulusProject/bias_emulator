@@ -10,16 +10,16 @@ import george
 #Create the CFFI library
 bias_dir = os.path.dirname(__file__)
 include_dir = os.path.join(bias_dir,'include')
-lib_file    = os.path.join(bias_dir,'_bias.so')
+lib_file    = os.path.join(bias_dir,'_bias_emulator.so')
 # Some installation (e.g. Travis with python 3.x)
 # name this e.g. _bias.cpython-34m.so,
 # so if the normal name doesn't exist, look for something else.
 if not os.path.exists(lib_file):
-    alt_files = glob.glob(os.path.join(os.path.dirname(__file__),'_bias*.so'))
+    alt_files = glob.glob(os.path.join(os.path.dirname(__file__),'_bias_emulator*.so'))
     if len(alt_files) == 0:
-        raise IOError("No file '_bias.so' found in %s"%bias_dir)
+        raise IOError("No file '_bias_emulator.so' found in %s"%bias_dir)
     if len(alt_files) > 1:
-        raise IOError("Multiple files '_bias*.so' found in %s: %s"%(bias_dir,alt_files))
+        raise IOError("Multiple files '_bias_emulator*.so' found in %s: %s"%(bias_dir,alt_files))
     lib_file = alt_files[0]
 _ffi = cffi.FFI()
 for file_name in glob.glob(os.path.join(include_dir,'*.h')):
@@ -242,6 +242,7 @@ class bias_emulator(Aemulator):
         self.M = np.logspace(10, 16.5, num=1000) # Msun/h
         self.computed_sigma2      = {}
         self.computed_peak_height = {}
+        self.peak_height_splines  = {}
         self.computed_pk          = {}
         self.cosmology_is_set = True
         return
@@ -312,7 +313,7 @@ class bias_emulator(Aemulator):
         bias_out = np.zeros((Nz, NM))
         for i,z in enumerate(redshifts):
             A,a,B,b,C,c = self.predict_bias_parameters(z)
-            nu_spline = IUS(np.log(self.M), self.computed_peak_height[z])
+            peak_height_spline = IUS(np.log(self.M), self.computed_peak_height[z])
             nu        = peak_height_spline(lnMasses)
             output    = np.zeros_like(Masses)
             _lib.bias_at_nu_arr_FREEPARAMS(_dc(nu), NM, delta,A,a,B,b,C,c, _dc(output)); 
