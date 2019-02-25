@@ -1,10 +1,10 @@
 import pytest
-from bias import *
+from bias_emulator import *
 import numpy as np
 import numpy.testing as npt
 
 #Create an emulator
-h = bias.bias_emulator()
+h = bias_emulator()
 
 def test_bias_emulator_load_data():
     npt.assert_equal(h.loaded_data, True)
