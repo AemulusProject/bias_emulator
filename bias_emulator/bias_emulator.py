@@ -1,5 +1,3 @@
-#Test file for extending the Aemulator base class.
-
 from Aemulator import *
 import numpy as np
 import cffi, glob, os, inspect, pickle, warnings
@@ -26,7 +24,7 @@ for file_name in glob.glob(os.path.join(include_dir,'*.h')):
     _ffi.cdef(open(file_name).read())
 _lib = _ffi.dlopen(lib_file)
 
-#Used to case things correctly
+#Used to cast things correctly
 def _dc(x):
     if isinstance(x, list): x = np.asarray(x, dtype=np.float64, order='C')
     return _ffi.cast('double*', x.ctypes.data)

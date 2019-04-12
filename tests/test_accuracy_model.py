@@ -1,0 +1,14 @@
+import pytest
+from bias_emulator import *
+import numpy as np
+import numpy.testing as npt
+
+ac = accuracy_model.bias_accuracy()
+
+def test_acc_and_cov():
+    acc = ac.accuracy_at_nu_z(1, 1)
+    npt.assert_equal(1, acc)
+    cov = ac.covariance_model([1,1],1)
+    npt.assert_equal([[1,1],[1,1]], cov)
+    return
+
