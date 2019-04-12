@@ -12,3 +12,10 @@ def test_acc_and_cov():
     npt.assert_equal([[1,1],[1,1]], cov)
     return
 
+def test_param_set():
+    newac = accuracy_model.bias_accuracy()
+    npt.assert_equal(np.ones(5), newac.parameters)
+    newac.set_parameters(2*np.ones(5))
+    npt.assert_equal(2*np.ones(5), newac.parameters)
+    return
+
