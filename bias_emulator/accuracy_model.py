@@ -32,9 +32,9 @@ class bias_accuracy(object):
         C = np.outer(sigma, sigma)
 
         if dnu is None:
-            dnu = np.array([nu - nu_i for nu_i in nu])
+            dnu = np.array([np.fabs(nu - nu_i) for nu_i in nu])
         if dz is None:
-            dz = np.array([z_nu - z_nu_i for z_nu_i in z_nu])
+            dz = np.array([np.fabs(z_nu - z_nu_i) for z_nu_i in z_nu])
 
         _,_,_, l_nu, l_z = self.parameters
         R = np.exp(-dnu/l_nu - dz/l_z)
@@ -43,3 +43,4 @@ class bias_accuracy(object):
     def set_parameters(self, parameters):
         assert len(parameters) == 5
         self.parameters = parameters
+        return

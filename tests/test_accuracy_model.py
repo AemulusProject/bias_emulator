@@ -10,6 +10,11 @@ def test_acc_and_cov():
     npt.assert_equal(1, acc)
     cov = ac.covariance_model([1,1],1)
     npt.assert_equal([[1,1],[1,1]], cov)
+
+    #Test for symmetry
+    cov = ac.covariance_model([.2,1],1)
+    npt.assert_equal(cov, cov.T)
+
     return
 
 def test_param_set():
