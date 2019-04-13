@@ -5,9 +5,12 @@ class bias_accuracy(object):
     def __init__(self, parameters=None):
         #Parameters are D, E, F, Lnu, Lz
         if parameters is None:
-            self.parameters = np.ones(5)
+            #Optimized externally
+            self.parameters = np.array([ 0.00549773, -0.00229455,
+                                         0.03623199,  1.28157324,
+                                         1.77962876])
         else:
-            self.parametesr = parameters
+            self.parameters = parameters
             
     def accuracy_at_nu_z(self, nu, z):
         """Accuracy at a given peak height and redshift
