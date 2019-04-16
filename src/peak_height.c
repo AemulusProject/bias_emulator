@@ -142,7 +142,10 @@ int dsigma2dR_at_R_arr(double*R, int NR, double*k, double*P, int Nk, double*ds2d
   double lkmin = log(k[0]);
   double lkmax = log(k[Nk-1]);
   double result,abserr;
-  double denom_inv = 1./(2*M_PI*M_PI);
+  //Divide by 2pi^2, but note we pull a factor of 2
+  //out of the integrand because we take dw^2/dR
+  //We also pull a factor of 3 out of the integrand.
+  double denom_inv = 1./(M_PI*M_PI);
   int i;
   gsl_spline_init(spline,k,P,Nk);
   params->spline = spline;

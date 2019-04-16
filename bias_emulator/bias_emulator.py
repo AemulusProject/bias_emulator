@@ -282,7 +282,7 @@ class bias_emulator(Aemulator):
             sigma2    = np.zeros_like(M)
             _lib.sigma2_at_M_arr(   _dc(M), NM, _dc(kh), _dc(p), Nk, Omega_m, _dc(sigma2))
             self.computed_sigma2[z] = sigma2
-            self.computed_dsigma2dM = {}
+            #self.computed_dsigma2dM = {}
             self.computed_peak_height[z] = 1.686/np.sqrt(sigma2)
             self.computed_pk[z]          = p
             continue
