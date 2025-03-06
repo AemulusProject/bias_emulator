@@ -196,7 +196,7 @@ class bias_emulator(Aemulator):
         return np.dot(self.rotation_matrix, output).flatten()
 
 
-    def set_cosmology(self, params):
+    def set_cosmology(self, params, cc=None):
         """
         Set the cosmological parameters of the emulator. One must
         call this function before actually computing the bias.
@@ -216,24 +216,26 @@ class bias_emulator(Aemulator):
         #Set up a CLASS dictionary
         self.h = params['H0']/100.
         self.Omega_m = (params["omega_b"]+params["omega_cdm"])/self.h**2
-        class_cosmology = {
-            'output': 'mPk',
-            'H0':           params['H0'],
-            'ln10^{10}A_s': params['ln10As'],
-            'n_s':          params['n_s'],
-            'w0_fld':       params['w0'],
-            'wa_fld':       0.0,
-            'omega_b':      params['omega_b'],
-            'omega_cdm':    params['omega_cdm'],
-            'Omega_Lambda': 1 - self.Omega_m,
-            'N_eff':        params['N_eff'],
-            'P_k_max_1/Mpc': 10.,
-            'z_max_pk':      5.03
-        }
-        #Seed splines in CLASS
-        cc = Class()
-        cc.set(class_cosmology)
-        cc.compute()
+        if cc is None:
+            class_cosmology = {
+                'output': 'mPk',
+                'H0':           params['H0'],
+                'ln10^{10}A_s': params['ln10As'],
+                'n_s':          params['n_s'],
+                'w0_fld':       params['w0'],
+                'wa_fld':       0.0,
+                'omega_b':      params['omega_b'],
+                'omega_cdm':    params['omega_cdm'],
+                'Omega_Lambda': 1 - self.Omega_m,
+                'N_eff':        params['N_eff'],
+                'P_k_max_1/Mpc': 10.,
+                'z_max_pk':      5.03
+            }
+            #Seed splines in CLASS
+            cc = Class()
+            cc.set(class_cosmology)
+            cc.compute()
+
         #Make everything attributes
         self.cc = cc
         self.k = np.logspace(-5, 1, num=1000) # Mpc^-1 comoving
@@ -278,7 +280,7 @@ class bias_emulator(Aemulator):
         for i,z in enumerate(np.atleast_1d(redshifts)):
             if z in self.computed_sigma2.keys():
                 continue
-            p = np.array([self.cc.pk_lin(ki, z) for ki in k])*h**3 #[Mpc/h]^3
+            p = np.array([self.cc.pk_cb_lin(ki, z) for ki in k])*h**3 #[Mpc/h]^3
             sigma2    = np.zeros_like(M)
             _lib.sigma2_at_M_arr(   _dc(M), NM, _dc(kh), _dc(p), Nk, Omega_m, _dc(sigma2))
             self.computed_sigma2[z] = sigma2
